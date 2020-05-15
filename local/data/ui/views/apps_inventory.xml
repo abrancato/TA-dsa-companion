@@ -1,0 +1,22 @@
+<dashboard theme="dark">
+  <label>Apps Inventory</label>
+ <row>
+    <panel>
+      <table>
+        <title>Installed Apps</title>
+        <search>
+          <query>| rest /servicesNS/-/-/apps/local splunk_server=* 
+| fields version update.version title core visible
+| search visible=1 core=0
+| stats values(version) AS deployed_versions by title
+| sort - title</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="count">10</option>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+  </row>
+</dashboard>

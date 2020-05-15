@@ -1,0 +1,64 @@
+<dashboard theme="dark">
+  <label>Data Inventory</label>
+  <row>
+    <panel>
+      <title>By Volume</title>
+      <table>
+        <search>
+          <query>index=_internal source=*license_usage.log TERM(type=Usage) 
+| fields idx, b, st, h, _time, date_wday
+| eval h=if(len(h)=0 OR isnull(h),'(SQUASHED)',h)
+| bin _time span=1d
+| stats sum(b) AS b, dc(h) AS h by st idx _time
+| stats avg(b) as avg_b, avg(h) AS Host_Count_per_Day by idx st
+| eval Avg_MB_per_Day=round(avg_b/1024/1024,2)
+| eval Avg_GB_per_Day=round(avg_b/1024/1024/1024,2)
+| eval Avg_MB_per_Host=round(Avg_MB_per_Day/Host_Count_per_Day,2)
+| eval Host_Count_per_Day=round(Host_Count_per_Day,0)
+| rename st AS Sourcetype
+| join type=left Sourcetype [
+| rest /services/saved/sourcetypes
+| rename title AS Sourcetype, eai:acl.app as app
+| table Sourcetype, app
+]
+| table idx, app, Sourcetype, Avg_MB_per_Day, Avg_GB_per_Day, Host_Count_per_Day, Avg_MB_per_Host
+| sort -Avg_MB_per_Day</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="count">15</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <table>
+        <title>By Index</title>
+        <search>
+          <query>| tstats count dc(host) AS hosts WHERE earliest=-365d@d index=* BY index sourcetype | sort - count | eventstats sum(count) AS total by index | stats sum(count) AS sum_count dc(sourcetype) AS sourcetype_count list(sourcetype) AS sourcetype  list(count) AS count list(eval(round(((count/total)*100),2)."%")) AS percent_coverage list(hosts) AS unique_hosts by index | sort - sum_count | join index [| rest /servicesNS/-/-/data/indexes splunk_server=* | fields maxDataSize title frozenTimePeriodInSecs splunk_server | eval retention_days=frozenTimePeriodInSecs/60/60/24 | stats list(maxDataSize) list(splunk_server) list(retention_days) by title | rename title AS index]</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <table>
+        <title>By Datamodel Acceleration</title>
+        <search>
+          <query>| rest /services/admin/summarization by_tstats=t splunk_server=local count=0  | eval datamodel=replace('summary.id',"DM_".'eai:acl.app'."_","")   | join type=outer datamodel [| rest /services/data/models | fields title acceleration.cron_schedule | rename acceleration.cron_schedule as cron title as datamodel]   | sort 0 datamodel  | eval retention(days)=if('summary.time_range'==0,"unlimited",'summary.time_range'/86400), complete(%)=round('summary.complete'*100,1), size(MB)=round('summary.size'/1048576,1), runDuration(s)=round(runDuration,1)  | rename eai:acl.app AS app summary.* AS * | convert ctime(*_time)  | fields datamodel app retention(days) complete(%) size(MB) | search "complete(%)" &gt;0 | sort - size(MB)</query>
+          <earliest>-24h@h</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+  </row>
+</dashboard>
