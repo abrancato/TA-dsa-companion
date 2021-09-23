@@ -5,7 +5,7 @@
       <title>By Volume</title>
       <table>
         <search>
-          <query>index=_internal source=*license_usage.log TERM(type=Usage) 
+          <query>index=_internal source=*license_usage.log TERM(type=Usage) earliest=-7d@d latest=@d
 | fields idx, b, st, h, _time, date_wday
 | eval h=if(len(h)=0 OR isnull(h),'(SQUASHED)',h)
 | bin _time span=1d
