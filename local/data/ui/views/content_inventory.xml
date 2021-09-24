@@ -1,6 +1,6 @@
 <dashboard theme="dark">
   <label>Content Inventory</label>
-  <description>Please install these Apps: ES, ESCU, Security Essentials</description>
+  <description>Please install these Apps: ES, ESCU, Security Essentials, OT Security Add-on for ES,</description>
   <row>
     <panel>
       <single>
@@ -70,6 +70,16 @@
 | eval source="Splunk User Behavior Analytics"
 ]
 
+|append [
+| rest splunk_server=local count=0 /services/saved/searches
+| eval source="OT Security Add-on for Splunk"
+| search eai:acl.app="DA-ESS-OTSecurity"
+| rex field=qualifiedSearch ".*datamodel(=\"|=|:\"|\(\"|\s|:)(?&lt;datamodel&gt;[a-z,A-Z,_]*)"
+| rex field=qualifiedSearch ".*inputlookup(\sappend=[tT]\s|=\"|=|:\"|\(\"|\s|:)(?&lt;inputlookup&gt;[a-z,A-Z,_]*)"
+| rex field=qualifiedSearch "search(\ \`)(?&lt;providing_technologies&gt;[a-z,A-Z,_]*)"
+| rename action.notable.param.security_domain as domain, action.escu.analytic_story as analytic_story, eai:acl.app as app
+]
+
 | nomv datamodel | nomv providing_technologies | nomv security_domain | nomv category | nomv usecase | nomv mitre | nomv killchain | nomv detection_searches | nomv investigative_searches | nomv contextual_searches | nomv support_searches | nomv qualifiedSearch | nomv action.correlationsearch.annotations
 | rename action.correlationsearch.annotations as annotations
 | eval datamodel = replace(datamodel, "\n", " | ") | eval providing_technologies = replace(providing_technologies, "\n", " | ") | eval security_domain = replace(security_domain, "\n", " | ") | eval category = replace(category, "\n", " | ") | eval usecase = replace(usecase, "\n", " | ") | eval mitre = replace(mitre, "\n", " | ") | eval killchain = replace(killchain, "\n", " | ") | eval detection_searches = replace(detection_searches, "\n", " | ") | eval investigative_searches = replace(investigative_searches, "\n", " | ") | eval contextual_searches = replace(contextual_searches, "\n", " | ") | eval support_searches = replace(support_searches, "\n", " | ")  | eval qualifiedSearch = replace(qualifiedSearch, "\n|,|;", " ") | eval annotations = replace(annotations, "[\[\]\"]|{|}", "") | eval annotations = replace(annotations, ",", " |") | eval description = replace(description, "&lt;.+&gt;|,|;|\n"," ")
@@ -93,24 +103,25 @@
         <title>Sources</title>
         <search>
           <query>| rest splunk_server=local count=0 /services/saved/searches
+| eval source="Splunk Enterprise Security - Correlations"
 | search action.correlationsearch.enabled = "1" AND NOT action.escu.full_search_name = "ESCU*" AND NOT eai:acl.app="DA-ESS-OTSecurity"
 | rex field=qualifiedSearch ".*datamodel(=\"|=|:\"|\(\"|\s|:)(?&lt;datamodel&gt;[a-z,A-Z,_]*)"
 | rex field=qualifiedSearch ".*inputlookup(\sappend=[tT]\s|=\"|=|:\"|\(\"|\s|:)(?&lt;inputlookup&gt;[a-z,A-Z,_]*)"
-| rename action.correlationsearch.label as title, action.notable.param.security_domain as domain, action.escu.analytic_story as analytic_story, action.escu.providing_technologies as providing_technologies, eai:acl.app as app
-| eval source="Splunk Enterprise Security - Correlations"
+| rename action.correlationsearch.label as title, action.notable.param.security_domain as domain, action.escu.analytic_story as analytic_story, action.escu.providing_technologies as providing_technologies, eai:acl.app as app 
 
 |append [
 | rest splunk_server=local count=0 /services/saved/searches
+| eval source="Splunk ES Content Update - Correlations"
 | search action.correlationsearch.enabled = "1" AND action.escu.full_search_name = "ESCU*"
 | rex field=qualifiedSearch ".*datamodel(=\"|=|:\"|\(\"|\s|:)(?&lt;datamodel&gt;[a-z,A-Z,_]*)"
 | rex field=qualifiedSearch ".*inputlookup(\sappend=[tT]\s|=\"|=|:\"|\(\"|\s|:)(?&lt;inputlookup&gt;[a-z,A-Z,_]*)"
 | rex field=qualifiedSearch "search(\ \`)(?&lt;providing_technologies&gt;[a-z,A-Z,_]*)"
 | rename action.correlationsearch.label as title, action.notable.param.security_domain as domain, action.escu.analytic_story as analytic_story, eai:acl.app as app
-| eval source="Splunk ES Content Update - Correlations"
 ]
 
 | append [
 | rest /services/configs/conf-analytic_stories splunk_server=local count=0
+| eval source="Splunk ES Content Update - Analytic Stories"
 | eval datamodels = replace(data_models, "[\[\]\"]", "") 
 | eval providing_technologies = replace(providing_technologies, "[\[\]\"]", "")
 | eval detection_searches = replace(detection_searches, "[\[\]\"]", "") 
@@ -118,7 +129,6 @@
 | eval investigative_searches = replace(investigative_searches, "[\[\]\"]", "") 
 | eval contextual_searches = replace(contextual_searches, "[\[\]\"]", "") 
 | eval providing_technologies = replace(providing_technologies, ",", " |")
-| eval description = replace(description, ",", "")
 | eval detection_searches = replace(detection_searches, ",", " |")
 | eval support_searches = replace(support_searches, ",", " |")
 | eval investigative_searches = replace(investigative_searches, ",", " |")
@@ -130,9 +140,8 @@
 | eval mitre = replace(mitre, "\n", " | ")
 | eval killchain = replace(killchain, "\n", " | ")
 | rename eai:acl.app as app
-| eval source="Splunk ES Content Update - Analytic Stories"
 | nomv datamodels | nomv providing_technologies | nomv security_domain | nomv category | nomv mitre | nomv killchain | nomv detection_searches | nomv investigative_searches | nomv contextual_searches | nomv support_searches 
-| eval datamodel = replace(datamodels, "\n", " | ") | eval providing_technologies = replace(providing_technologies, "\n", " | ") | eval security_domain = replace(security_domain, "\n", " | ") | eval category = replace(category, "\n", " | ") | eval usecase = replace(usecase, "\n", " | ") | eval mitre = replace(mitre, "\n", " | ") | eval killchain = replace(killchain, "\n", " | ") | eval detection_searches = replace(detection_searches, "\n", " | ") | eval investigative_searches = replace(investigative_searches, "\n", " | ") | eval contextual_searches = replace(contextual_searches, "\n", " | ") | eval support_searches = replace(support_searches, "\n", " | ") | eval qualifiedSearch = replace(qualifiedSearch, "\n", " | ")
+| eval datamodel = replace(datamodels, "\n", " | ") | eval providing_technologies = replace(providing_technologies, "\n", " | ") | eval security_domain = replace(security_domain, "\n", " | ") | eval category = replace(category, "\n", " | ") | eval usecase = replace(usecase, "\n", " | ") | eval mitre = replace(mitre, "\n", " | ") | eval killchain = replace(killchain, "\n", " | ") | eval detection_searches = replace(detection_searches, "\n", " | ") | eval investigative_searches = replace(investigative_searches, "\n", " | ") | eval contextual_searches = replace(contextual_searches, "\n", " | ") | eval support_searches = replace(support_searches, "\n", " | ") 
 ]
 
 | append [
@@ -157,8 +166,19 @@
 | eval source="Splunk User Behavior Analytics"
 ]
 
-| nomv datamodel | nomv providing_technologies | nomv security_domain | nomv category | nomv usecase | nomv mitre | nomv killchain | nomv detection_searches | nomv investigative_searches | nomv contextual_searches | nomv support_searches | nomv qualifiedSearch
-| eval datamodel = replace(datamodel, "\n", " | ") | eval providing_technologies = replace(providing_technologies, "\n", " | ") | eval security_domain = replace(security_domain, "\n", " | ") | eval category = replace(category, "\n", " | ") | eval usecase = replace(usecase, "\n", " | ") | eval mitre = replace(mitre, "\n", " | ") | eval killchain = replace(killchain, "\n", " | ") | eval detection_searches = replace(detection_searches, "\n", " | ") | eval investigative_searches = replace(investigative_searches, "\n", " | ") | eval contextual_searches = replace(contextual_searches, "\n", " | ") | eval support_searches = replace(support_searches, "\n", " | ")  | eval qualifiedSearch = replace(qualifiedSearch, "\n", " | "), description = replace(description, "&lt;.+&gt;","")
+|append [
+| rest splunk_server=local count=0 /services/saved/searches
+| eval source="OT Security Add-on for Splunk"
+| search eai:acl.app="DA-ESS-OTSecurity"
+| rex field=qualifiedSearch ".*datamodel(=\"|=|:\"|\(\"|\s|:)(?&lt;datamodel&gt;[a-z,A-Z,_]*)"
+| rex field=qualifiedSearch ".*inputlookup(\sappend=[tT]\s|=\"|=|:\"|\(\"|\s|:)(?&lt;inputlookup&gt;[a-z,A-Z,_]*)"
+| rex field=qualifiedSearch "search(\ \`)(?&lt;providing_technologies&gt;[a-z,A-Z,_]*)"
+| rename action.notable.param.security_domain as domain, action.escu.analytic_story as analytic_story, eai:acl.app as app
+]
+
+| nomv datamodel | nomv providing_technologies | nomv security_domain | nomv category | nomv usecase | nomv mitre | nomv killchain | nomv detection_searches | nomv investigative_searches | nomv contextual_searches | nomv support_searches | nomv qualifiedSearch | nomv action.correlationsearch.annotations
+| rename action.correlationsearch.annotations as annotations
+| eval datamodel = replace(datamodel, "\n", " | ") | eval providing_technologies = replace(providing_technologies, "\n", " | ") | eval security_domain = replace(security_domain, "\n", " | ") | eval category = replace(category, "\n", " | ") | eval usecase = replace(usecase, "\n", " | ") | eval mitre = replace(mitre, "\n", " | ") | eval killchain = replace(killchain, "\n", " | ") | eval detection_searches = replace(detection_searches, "\n", " | ") | eval investigative_searches = replace(investigative_searches, "\n", " | ") | eval contextual_searches = replace(contextual_searches, "\n", " | ") | eval support_searches = replace(support_searches, "\n", " | ")  | eval qualifiedSearch = replace(qualifiedSearch, "\n|,|;", " ") | eval annotations = replace(annotations, "[\[\]\"]|{|}", "") | eval annotations = replace(annotations, ",", " |") | eval description = replace(description, "&lt;.+&gt;|,|;|\n"," ")
 
 
 | stats count by source</query>
@@ -169,5 +189,6 @@
         <option name="refresh.display">progressbar</option>
       </table>
     </panel>
+
   </row>
 </dashboard>
