@@ -74,9 +74,11 @@
 | rest splunk_server=local count=0 /services/saved/searches
 | eval source="OT Security Add-on for Splunk"
 | search eai:acl.app="DA-ESS-OTSecurity"
+| where like(title, "Threat%")
 | rex field=qualifiedSearch ".*datamodel(=\"|=|:\"|\(\"|\s|:)(?&lt;datamodel&gt;[a-z,A-Z,_]*)"
 | rex field=qualifiedSearch ".*inputlookup(\sappend=[tT]\s|=\"|=|:\"|\(\"|\s|:)(?&lt;inputlookup&gt;[a-z,A-Z,_]*)"
 | rex field=qualifiedSearch "search(\ \`)(?&lt;providing_technologies&gt;[a-z,A-Z,_]*)"
+| rex field=qualifiedSearch ".*technique_id(=\"|=|:\"|\(\"|\s|:)(?&lt;mitre&gt;[0-9,a-z,A-Z,_]*)"
 | rename action.notable.param.security_domain as domain, action.escu.analytic_story as analytic_story, eai:acl.app as app
 ]
 
@@ -189,6 +191,5 @@
         <option name="refresh.display">progressbar</option>
       </table>
     </panel>
-
   </row>
 </dashboard>
